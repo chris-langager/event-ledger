@@ -1,0 +1,35 @@
+{
+  "name": "event-ledger",
+  "version": "0.0.1",
+  "description": "A simple event store for nodejs, persisted in postgres.",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "pretest": "bash ./pretest.sh",
+    "test": "jest",
+    "posttest": "bash ./posttest.sh"
+  },
+  "keywords": [
+    "event sourcing"
+  ],
+  "author": "Chris Langager",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^24.0.19",
+    "@types/node": "^12.0.7",
+    "@types/pg": "^7.14.1",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.2.0",
+    "ts-node": "^8.4.1",
+    "typescript": "3.6.4"
+  },
+  "dependencies": {
+    "pg": "^7.17.1"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 90
+  }
+}
