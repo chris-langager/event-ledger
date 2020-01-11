@@ -1,5 +1,4 @@
-- add filters to read
-- add lookup function with the same filters
+- test what happens when postgres connection goes down and try to recover
 
 
 

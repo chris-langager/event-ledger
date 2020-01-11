@@ -90,6 +90,7 @@ update bookmarks
 set date_returned=(now() at time zone 'utc')
 where reader = $1 and partition = $2;
 `;
+
   await client.query(query, [reader, partition]);
   await client.query('COMMIT;');
 }

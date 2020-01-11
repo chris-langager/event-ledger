@@ -16,3 +16,21 @@ export interface NewEvent {
   actor?: string;
   payload?: object;
 }
+
+export interface EventRow {
+  index: number;
+  partition: number;
+  date_time: Date;
+  type?: string;
+  aggregate_type?: string;
+  aggregate_id?: string;
+  actor?: string;
+  payload?: object;
+}
+
+export interface ReadFilters {
+  types?: string[];
+  aggregateIds?: string[];
+  aggregateTypes?: string[];
+  actors?: string[];
+}

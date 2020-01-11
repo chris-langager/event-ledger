@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { NewEvent } from './event';
+import { NewEvent } from './types';
 import { hash } from './hash';
 
 export async function write(events: NewEvent[], pool: Pool) {

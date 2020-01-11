@@ -1,13 +1,14 @@
 import { promisify } from 'util';
 const sleep = promisify(setTimeout);
 
-import { Event, NewEvent } from './event';
+import { Event, NewEvent, ReadFilters } from './types';
 
 import { Pool } from 'pg';
 
 import { init } from './init';
 import { read, ReadOptions } from './read';
 import { write } from './write';
+import { lookUp, lookUpGenerator } from './lookup';
 
 export interface EventLedgetOptions {
   connectionString: string;
@@ -27,6 +28,14 @@ export function EventLedger(options: EventLedgetOptions) {
     write: async (events: NewEvent[]) => {
       await init(pool);
       return write(events, pool);
+    },
+    lookUp: async (where: ReadFilters) => {
+      await init(pool);
+      return lookUp(where, pool);
+    },
+    lookUpGenerator: async (where: ReadFilters) => {
+      await init(pool);
+      return lookUpGenerator(where, pool);
     },
   };
 }
@@ -50,16 +59,9 @@ const processAs = (reader: string) => {
   const connectionString = 'postgres://postgres:passw0rd@localhost:5432/postgres';
 
   const eventLedger = EventLedger({ connectionString });
-  //   eventLedger.write([
-  //     {
-  //       payload: {
-  //         to: 'asdf',
-  //         type: 'asdf',
-  //       },
-  //     },
-  //   ]);
 
   setInterval(() => {
+    console.log('writing...');
     eventLedger.write([
       {
         type: 'userLoggedIn',
@@ -71,7 +73,17 @@ const processAs = (reader: string) => {
     ]);
   }, 1000);
 
-  for (let i = 0; i < 1; i++) {
+  //   const events = await eventLedger.lookUp({});
+  //   console.log(events.length);
+
+  //   const sequence = await eventLedger.lookUpGenerator({});
+
+  //   for await (const events of sequence) {
+  //     console.log('generator:');
+  //     console.log(events.length);
+  //   }
+
+  for (let i = 0; i < 0; i++) {
     eventLedger.read({
       reader: 'A' + i,
       where: {

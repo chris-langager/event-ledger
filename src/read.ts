@@ -1,8 +1,9 @@
-import { DEFAULT_LIMIT, DEFAULT_BOOKMARK_EXPIRATION_TIME } from './defaults';
-import { BookmarkManager } from './BookmarkManager';
-import { Event } from './event';
 import { promisify } from 'util';
 import { Pool } from 'pg';
+import { DEFAULT_LIMIT, DEFAULT_BOOKMARK_EXPIRATION_TIME } from './defaults';
+import { BookmarkManager } from './BookmarkManager';
+import { Event } from './types';
+import { filtersToSQL, rowToEvent } from './utils';
 const sleep = promisify(setTimeout);
 
 export interface ReadOptions {
@@ -65,8 +66,6 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
           ORDER BY index ASC
           LIMIT $3;`;
 
-      console.log({ query });
-      console.log({ bindArgs });
       const { rows } = await pool.query<EventRow>(query, [
         index,
         partition,
@@ -79,15 +78,7 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
         await sleep(500);
         break;
       }
-      const events = rows.map(row => ({
-        index: row.index,
-        date: row.date_time,
-        type: row.type,
-        aggregateId: row.aggregate_id,
-        aggregateType: row.aggregate_type,
-        actor: row.actor,
-        payload: row.payload,
-      }));
+      const events = rows.map(rowToEvent);
 
       try {
         await process(events);
@@ -105,37 +96,4 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
   }
 
   _read();
-}
-
-// -- helper function to translate filters into sql + bindArgs
-const keyToColumn: { [key in keyof ReadFilters]: string } = {
-  types: 'type',
-  aggregateIds: 'aggregate_id',
-  aggregateTypes: 'aggregate_type',
-  actors: 'actor',
-};
-
-function filtersToSQL(startArgIndex: number, where?: ReadFilters) {
-  if (!where) {
-    return { sql: '', bindArgs: [] };
-  }
-  let argIndex = startArgIndex;
-
-  const sqlParts: string[] = [];
-  const bindArgs: any[] = [];
-  Object.keys(where)
-    .filter(key => !!where[key])
-    .forEach(key => {
-      sqlParts.push(
-        `${keyToColumn[key]} in (${Object.keys(where[key])
-          .map(() => `$${argIndex++}`)
-          .join(', ')})`
-      );
-      bindArgs.push(...where[key]);
-    });
-
-  return {
-    sql: sqlParts.join(' AND '),
-    bindArgs,
-  };
 }
