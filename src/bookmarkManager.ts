@@ -1,3 +1,4 @@
+import { DEFAULT_PARTITIONS } from './defaults';
 import { Client } from 'pg';
 
 interface Bookmark {
@@ -33,7 +34,9 @@ async function ensureBookmarkExists(client: Client, reader: string) {
   const query = `
   insert into bookmarks
     (reader, partition)
-values ${[...Array(8).keys()].map(i => i + 1).map(i => `('${reader}', ${i})`)}
+values ${[...Array(DEFAULT_PARTITIONS).keys()]
+    .map(i => i + 1)
+    .map(i => `('${reader}', ${i})`)}
        on conflict do nothing;  
   `;
 

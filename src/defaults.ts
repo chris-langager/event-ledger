@@ -1,0 +1,3 @@
+export const DEFAULT_PARTITIONS = 5;
+export const DEFAULT_LIMIT = 200;
+export const DEFAULT_BOOKMARK_EXPIRATION_TIME = 10000;

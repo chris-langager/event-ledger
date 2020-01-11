@@ -63,7 +63,7 @@ const processAs = (reader: string) => {
     eventLedger.write([
       {
         type: 'userLoggedIn',
-        aggregateId: '123',
+        // aggregateId: '123',
         payload: {
           username: 'asdf',
         },
@@ -71,9 +71,13 @@ const processAs = (reader: string) => {
     ]);
   }, 1000);
 
-  for (let i = 0; i < 11; i++) {
+  for (let i = 0; i < 1; i++) {
     eventLedger.read({
       reader: 'A' + i,
+      where: {
+        types: ['userLoggedIn'],
+        aggregateIds: ['asdf', '123'],
+      },
       process: processAs(`A${i}`),
       onProcessError: async (error, events) => {
         console.log(error.stack);

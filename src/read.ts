@@ -1,17 +1,23 @@
+import { DEFAULT_LIMIT, DEFAULT_BOOKMARK_EXPIRATION_TIME } from './defaults';
 import { BookmarkManager } from './BookmarkManager';
 import { Event } from './event';
 import { promisify } from 'util';
 import { Pool } from 'pg';
 const sleep = promisify(setTimeout);
 
-const DEFAULT_LIMIT = 200;
-const DEFAULT_BOOKMARK_EXPIRATION_TIME = 10000;
-
 export interface ReadOptions {
   reader: string;
   process: (events: Event[]) => Promise<void>;
   onProcessError?: (error: Error, events: Event[]) => Promise<void>;
+  where?: ReadFilters;
   limit?: number;
+}
+
+export interface ReadFilters {
+  types?: string[];
+  aggregateIds?: string[];
+  aggregateTypes?: string[];
+  actors?: string[];
 }
 
 interface EventRow {
@@ -26,7 +32,7 @@ interface EventRow {
 }
 
 export async function read(options: ReadOptions, pool: Pool, connectionString: string) {
-  const { reader, process, onProcessError } = options;
+  const { reader, process, onProcessError, where } = options;
   const limit = options.limit || DEFAULT_LIMIT;
 
   const bookmarkManager = await BookmarkManager({ reader, connectionString });
@@ -49,14 +55,24 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
     let { index } = bookmark;
 
     while (!bookmarkExpired) {
+      const { sql, bindArgs } = filtersToSQL(4, where);
+
       const query = `
           SELECT *
           FROM events
           WHERE index > $1 AND partition = $2
+          ${sql ? 'AND ' + sql : ''}
           ORDER BY index ASC
           LIMIT $3;`;
 
-      const { rows } = await pool.query<EventRow>(query, [index, partition, limit]);
+      console.log({ query });
+      console.log({ bindArgs });
+      const { rows } = await pool.query<EventRow>(query, [
+        index,
+        partition,
+        limit,
+        ...bindArgs,
+      ]);
 
       if (rows.length === 0) {
         console.log(`reached the end of partition ${partition}, returning bookmark`);
@@ -89,4 +105,37 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
   }
 
   _read();
+}
+
+// -- helper function to translate filters into sql + bindArgs
+const keyToColumn: { [key in keyof ReadFilters]: string } = {
+  types: 'type',
+  aggregateIds: 'aggregate_id',
+  aggregateTypes: 'aggregate_type',
+  actors: 'actor',
+};
+
+function filtersToSQL(startArgIndex: number, where?: ReadFilters) {
+  if (!where) {
+    return { sql: '', bindArgs: [] };
+  }
+  let argIndex = startArgIndex;
+
+  const sqlParts: string[] = [];
+  const bindArgs: any[] = [];
+  Object.keys(where)
+    .filter(key => !!where[key])
+    .forEach(key => {
+      sqlParts.push(
+        `${keyToColumn[key]} in (${Object.keys(where[key])
+          .map(() => `$${argIndex++}`)
+          .join(', ')})`
+      );
+      bindArgs.push(...where[key]);
+    });
+
+  return {
+    sql: sqlParts.join(' AND '),
+    bindArgs,
+  };
 }
