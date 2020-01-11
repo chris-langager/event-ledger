@@ -1,7 +1,7 @@
 {
   "name": "event-ledger",
   "version": "0.0.1",
-  "description": "A simple event store for nodejs, persisted in postgres.",
+  "description": "A simple event store for Node.js, persisted in Postgres.",
   "main": "index.js",
   "scripts": {
     "build": "tsc",

@@ -1,3 +1,3 @@
 # event-ledger
 
-A simple event store for nodejs, persisted in postgres.
+A simple event store for Node.js, persisted in Postgres.
