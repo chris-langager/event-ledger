@@ -32,8 +32,8 @@ async function checkoutBookmark(
   const query = `
 select *
 from bookmarks
-where consumer = $1
-order by date_returned3 asc, index asc, partition asc
+where reader = $1
+order by date_returned asc, index asc, partition asc
 limit 1
     for update skip locked;
 `;
@@ -58,7 +58,7 @@ async function updateBookmark(
   const query = `
 update bookmarks
 set index=$1
-where consumer = $2 and partition = $3;
+where reader = $2 and partition = $3;
 `;
 
   await client.query(query, [index, reader, partition]);

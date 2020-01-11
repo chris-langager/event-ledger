@@ -1,24 +1,20 @@
 import { promisify } from 'util';
 const sleep = promisify(setTimeout);
-import { hash } from './hash';
+
 import { Event, NewEvent } from './event';
 
 import { Pool } from 'pg';
 
-import { BookmarkManager } from './bookmarkManager';
 import { init } from './init';
-
-const connectionString = 'postgres://postgres:passw0rd@localhost:5432/postgres';
-
-const pool = new Pool({
-  connectionString,
-});
+import { read, ReadOptions } from './read';
+import { write } from './write';
 
 export interface EventLedgetOptions {
   connectionString: string;
 }
 
-export function EventLedger(connectionString: string) {
+export function EventLedger(options: EventLedgetOptions) {
+  const { connectionString } = options;
   const pool = new Pool({
     connectionString,
   });
@@ -35,94 +31,11 @@ export function EventLedger(connectionString: string) {
   };
 }
 
-const EVENT_TABLE = 'events';
-
-interface ReadOptions {
-  reader: string;
-  process: (events: Event[]) => Promise<void>;
-  onProcessError?: (error: Error, events: Event[]) => Promise<void>;
-  limit?: number;
-}
-
-const DEFAULT_LIMIT = 200;
-const DEFAULT_BOOKMARK_EXPIRATION_TIME = 10000;
-
-export async function read(options: ReadOptions, pool: Pool, connectionString: string) {
-  const { reader, process, onProcessError } = options;
-  const limit = options.limit || DEFAULT_LIMIT;
-
-  const bookmarkManager = await BookmarkManager({ reader, connectionString });
-
-  async function _read() {
-    const bookmark = await bookmarkManager.checkoutBookmark();
-    if (!bookmark) {
-      console.log(`[${reader}] no bookmarks left, sleeping for a bit...`);
-      await sleep(2000);
-      _read();
-      return;
-    }
-
-    let bookmarkExpired = false;
-    setTimeout(() => {
-      bookmarkExpired = true;
-    }, DEFAULT_BOOKMARK_EXPIRATION_TIME);
-
-    const { partition } = bookmark;
-    let { index } = bookmark;
-
-    while (!bookmarkExpired) {
-      const query = `
-        SELECT *
-        FROM ${EVENT_TABLE}
-        WHERE id > $1 AND partition = $2
-        ORDER BY id ASC
-        LIMIT $3;`;
-
-      const { rows: events } = await pool.query<Event>(query, [index, partition, limit]);
-
-      try {
-        await process(events);
-      } catch (e) {
-        onProcessError && (await onProcessError(e, events));
-        break;
-      }
-
-      index = events[events.length - 1].index;
-      await bookmarkManager.updateBookmark(partition, index);
-    }
-
-    await bookmarkManager.returnBookmark();
-    _read();
-  }
-
-  _read();
-}
-
-export async function write(events: NewEvent[], pool: Pool) {
-  const parameterPlaceholders: string[] = [];
-  //TODO: fix typing
-  const parameters: any[] = [];
-  for (let i = 1; i <= events.length; i++) {
-    parameterPlaceholders.push(`($${i}, $${i + 1})`);
-    parameters.push(events[i - 1].payload);
-    //TODO: generate partition key
-    parameters.push(1);
-  }
-
-  const query = `
-INSERT INTO ${EVENT_TABLE} 
-  (payload, partition)
-VALUES ${parameterPlaceholders.join(',')};
-`;
-
-  await pool.query(query, parameters);
-}
-
-const processAs = (consumer: string) => {
+const processAs = (reader: string) => {
   return async (events: Event[]) => {
     console.log(
-      `consumer ${consumer} is handing events ${events[0].id}-${
-        events[events.length - 1].id
+      `reader ${reader} is handing events ${events[0].index}-${
+        events[events.length - 1].index
       }`
     );
     await sleep(1000);
@@ -134,8 +47,12 @@ const processAs = (consumer: string) => {
 };
 
 (async () => {
+  const connectionString = 'postgres://postgres:passw0rd@localhost:5432/postgres';
+
+  const eventLedger = EventLedger({ connectionString });
+
   setInterval(() => {
-    write([
+    eventLedger.write([
       {
         payload: {
           to: 'asdf',
@@ -145,7 +62,7 @@ const processAs = (consumer: string) => {
     ]);
   }, 1000);
 
-  read({
+  eventLedger.read({
     reader: 'A',
     process: processAs('A1'),
     onProcessError: async (error, events) => {
@@ -154,13 +71,13 @@ const processAs = (consumer: string) => {
     },
   });
 
-  const ss = [
-    'asdf',
-    'sadf',
-    'this is a long string with spaces',
-    'boggle',
-    'boggle',
-    'boggle',
-  ];
-  ss.forEach(s => console.log(`${s} -> ${hash(s)}`));
+  //   const ss = [
+  //     'asdf',
+  //     'sadf',
+  //     'this is a long string with spaces',
+  //     'boggle',
+  //     'boggle',
+  //     'boggle',
+  //   ];
+  //   ss.forEach(s => console.log(`${s} -> ${hash(s)}`));
 })();
