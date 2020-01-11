@@ -50,26 +50,37 @@ const processAs = (reader: string) => {
   const connectionString = 'postgres://postgres:passw0rd@localhost:5432/postgres';
 
   const eventLedger = EventLedger({ connectionString });
+  //   eventLedger.write([
+  //     {
+  //       payload: {
+  //         to: 'asdf',
+  //         type: 'asdf',
+  //       },
+  //     },
+  //   ]);
 
   setInterval(() => {
     eventLedger.write([
       {
+        type: 'userLoggedIn',
+        aggregateId: '123',
         payload: {
-          to: 'asdf',
-          type: 'asdf',
+          username: 'asdf',
         },
       },
     ]);
   }, 1000);
 
-  eventLedger.read({
-    reader: 'A',
-    process: processAs('A1'),
-    onProcessError: async (error, events) => {
-      console.log(error.stack);
-      console.log(`failed to process ${events.length} events`);
-    },
-  });
+  for (let i = 0; i < 11; i++) {
+    eventLedger.read({
+      reader: 'A' + i,
+      process: processAs(`A${i}`),
+      onProcessError: async (error, events) => {
+        console.log(error.stack);
+        console.log(`failed to process ${events.length} events`);
+      },
+    });
+  }
 
   //   const ss = [
   //     'asdf',

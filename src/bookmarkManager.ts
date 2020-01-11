@@ -15,12 +15,29 @@ export async function BookmarkManager(options: BookmarkManagerOptions) {
   const client = new Client({ connectionString });
   await client.connect();
 
+  let partition = 0;
+
   return {
-    checkoutBookmark: () => checkoutBookmark(client, reader),
-    updateBookmark: (partition: number, index: number) =>
-      updateBookmark(client, reader, partition, index),
-    returnBookmark: () => returnBookmark(client),
+    checkoutBookmark: async () => {
+      await ensureBookmarkExists(client, reader);
+      const bookmark = await checkoutBookmark(client, reader);
+      if (bookmark) partition = bookmark.partition;
+      return bookmark;
+    },
+    updateBookmark: (index: number) => updateBookmark(client, reader, partition, index),
+    returnBookmark: () => returnBookmark(client, reader, partition),
   };
+}
+
+async function ensureBookmarkExists(client: Client, reader: string) {
+  const query = `
+  insert into bookmarks
+    (reader, partition)
+values ${[...Array(8).keys()].map(i => i + 1).map(i => `('${reader}', ${i})`)}
+       on conflict do nothing;  
+  `;
+
+  await client.query(query);
 }
 
 async function checkoutBookmark(
@@ -33,7 +50,7 @@ async function checkoutBookmark(
 select *
 from bookmarks
 where reader = $1
-order by date_returned asc, index asc, partition asc
+order by date_returned asc nulls first, index asc, partition asc
 limit 1
     for update skip locked;
 `;
@@ -64,10 +81,12 @@ where reader = $2 and partition = $3;
   await client.query(query, [index, reader, partition]);
 }
 
-async function returnBookmark(client: Client) {
+async function returnBookmark(client: Client, reader: string, partition: number) {
   const query = `
-COMMIT;
+update bookmarks
+set date_returned=(now() at time zone 'utc')
+where reader = $1 and partition = $2;
 `;
-
-  await client.query(query);
+  await client.query(query, [reader, partition]);
+  await client.query('COMMIT;');
 }

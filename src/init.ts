@@ -23,9 +23,11 @@ CREATE TABLE IF NOT EXISTS bookmarks
 (
     reader        TEXT     NOT NULL,
     partition     SMALLINT NOT NULL,
+    index         INTEGER  NOT NULL DEFAULT 0,
     date_returned TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (reader, partition)
 );
+
 
 `;
 
@@ -44,14 +46,13 @@ export async function init(pool: Pool) {
 
   //if init has already been called, wait a bit and try again
   if (queryRunning) {
-    await sleep(500);
+    await sleep(50);
     return init(pool);
   }
 
   //this will be set by the first execution of this function
   queryRunning = true;
   try {
-    console.log('making db call');
     await pool.query(query);
     initSuccess = true;
   } finally {

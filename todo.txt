@@ -1,0 +1,6 @@
+- add filters to read
+- add lookup function with the same filters
+
+
+
+- consider checkout bookmark strategy where you always checkout half of the remaining bookmarks, rounded up

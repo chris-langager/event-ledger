@@ -52,11 +52,17 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
       const query = `
           SELECT *
           FROM events
-          WHERE id > $1 AND partition = $2
-          ORDER BY id ASC
+          WHERE index > $1 AND partition = $2
+          ORDER BY index ASC
           LIMIT $3;`;
 
       const { rows } = await pool.query<EventRow>(query, [index, partition, limit]);
+
+      if (rows.length === 0) {
+        console.log(`reached the end of partition ${partition}, returning bookmark`);
+        await sleep(500);
+        break;
+      }
       const events = rows.map(row => ({
         index: row.index,
         date: row.date_time,
@@ -75,7 +81,7 @@ export async function read(options: ReadOptions, pool: Pool, connectionString: s
       }
 
       index = events[events.length - 1].index;
-      await bookmarkManager.updateBookmark(partition, index);
+      await bookmarkManager.updateBookmark(index);
     }
 
     await bookmarkManager.returnBookmark();

@@ -4,13 +4,12 @@ import { hash } from './hash';
 
 export async function write(events: NewEvent[], pool: Pool) {
   const parameterPlaceholders: string[] = [];
-  //TODO: fix typing
   const parameters: any[] = [];
   let row = 0;
-  for (let i = 0; i <= events.length; i++) {
+  for (let i = 0; i < events.length; i++) {
     row = i * 6;
     parameterPlaceholders.push(
-      `($${row + 1}, $${row + 2},${row + 3}, $${row + 4},${row + 5}, $${row + 6})`
+      `($${row + 1}, $${row + 2},$${row + 3}, $${row + 4},$${row + 5}, $${row + 6})`
     );
 
     const { type, aggregateType, aggregateId, actor, payload } = events[i];
