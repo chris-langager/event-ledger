@@ -7,7 +7,8 @@ it('read test', async () => {
   const eventLedger = createEventLedger({ connectionString });
 
   const actor = uuid.v4();
-  for (let i = 0; i < 10; i++) {
+  const total = 1234;
+  for (let i = 0; i < total; i++) {
     writeCreateCustomerEvent(eventLedger, actor);
   }
 
@@ -24,7 +25,7 @@ it('read test', async () => {
 
   await sleep(3000);
 
-  expect(count).toEqual(10);
+  expect(count).toEqual(total);
 });
 
 async function writeCreateCustomerEvent(eventLedger: EventLedger, actor: string) {
