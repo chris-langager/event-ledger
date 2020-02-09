@@ -1,7 +1,7 @@
 import { promisify } from 'util';
 const sleep = promisify(setTimeout);
 
-import { Event, NewEvent, ReadFilters } from './types';
+import { Event, NewEvent, Filters } from './types';
 
 import { Pool } from 'pg';
 
@@ -10,11 +10,13 @@ import { read, ReadOptions } from './read';
 import { write } from './write';
 import { lookUp, lookUpGenerator } from './lookup';
 
-export interface EventLedgetOptions {
+export interface EventLedgerOptions {
   connectionString: string;
 }
 
-export function EventLedger(options: EventLedgetOptions) {
+export type EventLedger = ReturnType<typeof createEventLedger>;
+
+export function createEventLedger(options: EventLedgerOptions) {
   const { connectionString } = options;
   const pool = new Pool({
     connectionString,
@@ -29,11 +31,11 @@ export function EventLedger(options: EventLedgetOptions) {
       await init(pool);
       return write(events, pool);
     },
-    lookUp: async (where: ReadFilters) => {
+    lookUp: async (where: Filters) => {
       await init(pool);
       return lookUp(where, pool);
     },
-    lookUpGenerator: async (where: ReadFilters) => {
+    lookUpGenerator: async (where: Filters) => {
       await init(pool);
       return lookUpGenerator(where, pool);
     },
@@ -55,17 +57,19 @@ const processAs = (reader: string) => {
   };
 };
 
-(async () => {
+async () => {
   const connectionString = 'postgres://postgres:passw0rd@localhost:5432/postgres';
 
-  const eventLedger = EventLedger({ connectionString });
+  const eventLedger = createEventLedger({ connectionString });
 
   setInterval(() => {
     console.log('writing...');
     eventLedger.write([
       {
         type: 'userLoggedIn',
-        // aggregateId: '123',
+        aggregateId: '123',
+        aggregateType: 'user',
+        actor: 'system',
         payload: {
           username: 'asdf',
         },
@@ -107,4 +111,4 @@ const processAs = (reader: string) => {
   //     'boggle',
   //   ];
   //   ss.forEach(s => console.log(`${s} -> ${hash(s)}`));
-})();
+};

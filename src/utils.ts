@@ -1,4 +1,4 @@
-import { ReadFilters, Event, EventRow } from './types';
+import { Filters, Event, EventRow } from './types';
 
 export function rowToEvent(row: EventRow): Event {
   return {
@@ -12,7 +12,7 @@ export function rowToEvent(row: EventRow): Event {
   };
 }
 
-const keyToColumn: { [key in keyof ReadFilters]: string } = {
+const keyToColumn: { [key in keyof Filters]: string } = {
   types: 'type',
   aggregateIds: 'aggregate_id',
   aggregateTypes: 'aggregate_type',
@@ -20,7 +20,7 @@ const keyToColumn: { [key in keyof ReadFilters]: string } = {
 };
 
 //helper function to translate filters into sql + bindArgs
-export function filtersToSQL(startArgIndex: number, where?: ReadFilters) {
+export function filtersToSQL(startArgIndex: number, where?: Filters) {
   if (!where) {
     return { sql: '', bindArgs: [] };
   }

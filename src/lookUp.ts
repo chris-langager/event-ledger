@@ -1,25 +1,24 @@
 import { DEFAULT_LIMIT } from './defaults';
-import { Event, ReadFilters, EventRow } from './types';
+import { Event, Filters, EventRow } from './types';
 import { Pool } from 'pg';
 import { rowToEvent, filtersToSQL } from './utils';
 
 //this is probably going to get out of hand for anyone who needs to lookup a lot of events
-export async function lookUp(where: ReadFilters, pool: Pool): Promise<Event[]> {
+export async function lookUp(where: Filters, pool: Pool): Promise<Event[]> {
   const { sql, bindArgs } = filtersToSQL(1, where);
 
   const query = `
   SELECT *
   FROM events
   ${sql ? 'WHERE ' + sql : ''}
-  ORDER BY index ASC
-  ;`;
+  ORDER BY index ASC;`;
 
   const { rows } = await pool.query<EventRow>(query, bindArgs);
   return rows.map(rowToEvent);
 }
 
 //CONSIDER - are generators well known enough to use them here?  would a stream be better?
-export async function* lookUpGenerator(where: ReadFilters, pool: Pool) {
+export async function* lookUpGenerator(where: Filters, pool: Pool) {
   const { sql, bindArgs } = filtersToSQL(3, where);
 
   let lastIndex = 0;

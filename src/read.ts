@@ -2,7 +2,7 @@ import { promisify } from 'util';
 import { Pool } from 'pg';
 import { DEFAULT_LIMIT, DEFAULT_BOOKMARK_EXPIRATION_TIME } from './defaults';
 import { BookmarkManager } from './BookmarkManager';
-import { Event, ReadFilters, EventRow } from './types';
+import { Event, Filters, EventRow } from './types';
 import { filtersToSQL, rowToEvent } from './utils';
 const sleep = promisify(setTimeout);
 
@@ -10,7 +10,7 @@ export interface ReadOptions {
   reader: string;
   process: (events: Event[]) => Promise<void>;
   onProcessError?: (error: Error, events: Event[]) => Promise<void>;
-  where?: ReadFilters;
+  where?: Filters;
   limit?: number;
 }
 

@@ -12,11 +12,11 @@ CREATE TABLE IF NOT EXISTS events
     index          SERIAL PRIMARY KEY,
     partition      SMALLINT NOT NULL,
     date_time      TIMESTAMP WITH TIME ZONE DEFAULT (now() at time zone 'utc'),
-    type           TEXT,
-    aggregate_type TEXT,
-    aggregate_id   TEXT,
-    actor          TEXT,
-    payload        JSON
+    type           TEXT NOT NULL,
+    aggregate_type TEXT NOT NULL,
+    aggregate_id   TEXT NOT NULL,
+    actor          TEXT NOT NULL,
+    payload        JSON NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS bookmarks
